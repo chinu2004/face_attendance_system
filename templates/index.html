@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Attendance System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 20px;
+            background-color: #4CAF50;
+            color: white;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #video-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #attendance-status {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .attendance-list {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #ffffff;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        .attendance-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .attendance-list table, .attendance-list th, .attendance-list td {
+            border: 1px solid #ddd;
+        }
+        .attendance-list th, .attendance-list td {
+            padding: 8px;
+            text-align: center;
+        }
+        .attendance-list th {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Smart Attendance Tracker</h1>
+</header>
+
+<div id="video-container">
+    <img id="video-stream" src="{{ url_for('video_feed') }}" alt="Video Stream">
+</div>
+
+<div id="controls" style="text-align:center;">
+    <button onclick="startCamera()">Start Camera</button>
+    <button onclick="stopCamera()">Stop Camera</button>
+</div>
+
+<div id="attendance-status">
+    <button onclick="getAttendanceStatus()">Show Attendance Status</button>
+    <div id="attendance-list"></div>
+</div>
+
+<div id="download">
+   <center>  <button onclick="downloadCSV()">Download CSV</button></center>
+</div>
+
+<script>
+    function startCamera() {
+        fetch('/start');
+    }
+
+    function stopCamera() {
+        fetch('/stop');
+    }
+
+    function getAttendanceStatus() {
+        fetch('/display_csv')
+        .then(response => response.json())
+        .then(data => {
+            let html = '<div class="attendance-list"><table>';
+            html += '<tr><th>Name</th><th>Status</th><th>Start Time</th></tr>';
+            data.forEach(row => {
+                html += `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td></tr>`;
+            });
+            html += '</table></div>';
+            document.getElementById('attendance-list').innerHTML = html;
+        });
+    }
+
+    function downloadCSV() {
+        window.location.href = '/download';  // Initiates the download
+    }
+</script>
+
+</body>
+</html>
