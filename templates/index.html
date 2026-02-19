@@ -1,115 +1,219 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Attendance System</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 20px;
-        }
-        header {
-            text-align: center;
-            padding: 20px;
-            background-color: #4CAF50;
-            color: white;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin: 10px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        #video-container {
-            text-align: center;
-            margin-top: 20px;
-        }
-        #attendance-status {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .attendance-list {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #ffffff;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-        .attendance-list table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .attendance-list table, .attendance-list th, .attendance-list td {
-            border: 1px solid #ddd;
-        }
-        .attendance-list th, .attendance-list td {
-            padding: 8px;
-            text-align: center;
-        }
-        .attendance-list th {
-            background-color: #4CAF50;
-            color: white;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Face Attendance - Dashboard</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial;}
+    body{margin:0;padding:18px;background:#f5f7fb;color:#0b1220}
+    .container{width:95%;margin:12px auto;padding:18px;background:#fff;border-radius:10px;box-shadow:0 6px 24px rgba(12,20,40,0.06)}
+    h1{margin:0 0 8px;font-size:22px;padding-bottom:30px;}
+    .row{display:flex;gap:14px;align-items:flex-start}
+    .col{flex:48%;min-width:320px;height:90%}
+    .panel{padding:12px;border-radius:8px;background:#fbfdff;border:1px solid #eef3fb}
+    #video-box{display:flex;flex-direction:column;align-items:center;gap:8px}
+    #video-stream,#default-image{width:100%;border-radius:6px;background:#000}
+    button{padding:8px 12px;border-radius:8px;border:0;background:#2563eb;color:#fff;cursor:pointer}
+    button.secondary{background:#6b7280}
+    form{display:flex;gap:8px;align-items:center}
+    input[type=text]{padding:8px;border-radius:8px;border:1px solid #dbe6fb;width:220px}
+    #log{margin-top:8px;font-size:13px;color:#334155}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px 6px;border-bottom:1px solid #eef2ff;text-align:left}
+    th{background:#f8fbff}
+    .small{font-size:13px;color:#6b7280}
+    .status{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px}
+    .present{background:#d1fae5;color:#065f46}
+    .unknown{background:#fee2e2;color:#991b1b}
+  </style>
 </head>
 <body>
-
-<header>
-    <h1>Smart Attendance Tracker</h1>
-</header>
-
-<div id="video-container">
-    <img id="video-stream" src="{{ url_for('video_feed') }}" alt="Video Stream">
+  <div class="container">
+<h1 style="margin:0 0 8px; font-size:26px; padding-bottom:20px; text-align:left; margin-left:45px;">
+  Face Recognition Based Smart Attendance System
+</h1>
+ 
+    <div class="row">
+      <div class="col panel" id="video-panel">
+        <!-- Overlay Popup for Scan Video -->
+<div id="scan-popup" style="
+  display:none; 
+  position:fixed; 
+  top:0;left:0;width:100%;height:100%; 
+  background:rgba(0,0,0,0.8);
+  justify-content:center;
+  align-items:center;
+  z-index:1000;">
+  <div style="position:relative; max-width:600px; width:90%;">
+    <video id="scan-video" autoplay loop muted playsinline style="width:100%;border-radius:10px;">
+      <source src="{{ url_for('static', filename='face_scan.mp4') }}" type="video/mp4">
+    </video>
+    <p style="color:white;text-align:center;margin-top:10px;">Scanning face... Please stay still.</p>
+  </div>
 </div>
 
-<div id="controls" style="text-align:center;">
-    <button onclick="startCamera()">Start Camera</button>
-    <button onclick="stopCamera()">Stop Camera</button>
-</div>
+        <div id="video-box">
+          <!-- Default placeholder (image/video) -->
+          <img id="default-image" src="/static/placeholder.png" alt="Waiting for camera..." />
 
-<div id="attendance-status">
-    <button onclick="getAttendanceStatus()">Show Attendance Status</button>
-    <div id="attendance-list"></div>
-</div>
+          <!-- Live camera feed (hidden initially) -->
+          <img id="video-stream" src="" alt="Live camera feed" style="display:none;" />
 
-<div id="download">
-   <center>  <button onclick="downloadCSV()">Download CSV</button></center>
-</div>
+          <div>
+            <button id="start-btn">Start Camera</button>
+            <button id="stop-btn" class="secondary">Stop Camera</button>
+            <button id="download-btn" class="secondary">Download CSV</button>
+          </div>
+          <div id="log" class="small">Status: <span id="status-text">Idle</span></div>
+        </div>
+      </div>
+      
+
+      <div class="col panel">
+        <h3 style="margin-top:0">Add New Student</h3>
+<form id="add-form" onsubmit="return false;">
+  <input type="text" id="student-name" placeholder="Student name (optional)" />
+  <input type="password" id="admin-password" placeholder="Enter password" />
+  <button id="add-btn">Capture & Add (6 pics)</button>
+</form>
+        <div id="add-result" class="small"></div>
+
+        <hr style="margin:12px 0";>
+        <h3 style="margin:0 0 6px">Today's Attendance</h3>
+        <div id="attendance-table" class="small">Loading...</div>
+      </div>
+    </div>
+  </div>
 
 <script>
-    function startCamera() {
-        fetch('/start');
-    }
+  const startBtn = document.getElementById('start-btn');
+  const stopBtn = document.getElementById('stop-btn');
+  const statusText = document.getElementById('status-text');
+  const addBtn = document.getElementById('add-btn');
+  const studentNameInput = document.getElementById('student-name');
+  const addResult = document.getElementById('add-result');
+  const attendanceTable = document.getElementById('attendance-table');
+  const videoImg = document.getElementById('video-stream');
+  const defaultImg = document.getElementById('default-image');
+  const downloadBtn = document.getElementById('download-btn');
 
-    function stopCamera() {
-        fetch('/stop');
-    }
+  function showDefault() {
+    defaultImg.style.display = "block";
+    videoImg.style.display = "none";
+  }
 
-    function getAttendanceStatus() {
-        fetch('/display_csv')
-        .then(response => response.json())
-        .then(data => {
-            let html = '<div class="attendance-list"><table>';
-            html += '<tr><th>Name</th><th>Status</th><th>Start Time</th></tr>';
-            data.forEach(row => {
-                html += `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td></tr>`;
-            });
-            html += '</table></div>';
-            document.getElementById('attendance-list').innerHTML = html;
-        });
-    }
+  function showCamera() {
+    defaultImg.style.display = "none";
+    videoImg.style.display = "block";
+  }
 
-    function downloadCSV() {
-        window.location.href = '/download';  // Initiates the download
+  startBtn.onclick = async () => {
+    try {
+      await fetch('/start');
+      statusText.textContent = 'Camera started';
+      videoImg.src = '/video_feed?rand=' + Date.now(); // cache-bust
+      showCamera();
+    } catch(e) {
+      statusText.textContent = 'Start failed';
+      showDefault();
     }
+  };
+
+  stopBtn.onclick = async () => {
+    try {
+      await fetch('/stop');
+      statusText.textContent = 'Camera stopped';
+      videoImg.src = '';
+      showDefault();
+    } catch(e) {
+      statusText.textContent = 'Stop failed';
+    }
+  };
+
+addBtn.onclick = async () => {
+  const passwordInput = document.getElementById('admin-password');
+  const password = passwordInput.value.trim();
+  
+  // check password first
+  if(password !== "admin123") {  // <-- set your password here
+    alert("Incorrect password! Cannot add student.");
+    return; // stop execution
+  }
+
+  addBtn.disabled = true;
+  addResult.textContent = 'Capturing 6 images... please look at the camera.';
+
+  // Show popup overlay + play video
+  const scanPopup = document.getElementById('scan-popup');
+  const scanVideo = document.getElementById('scan-video');
+  scanPopup.style.display = "flex";
+  scanVideo.currentTime = 0;
+  scanVideo.play();
+
+  const name = studentNameInput.value.trim();
+  try {
+    const resp = await fetch('/add_student', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ student_name: name })
+    });
+    const j = await resp.json();
+    addResult.textContent = j.message || 'Student added successfully';
+    studentNameInput.value = '';
+    passwordInput.value = ''; // clear password
+
+    scanPopup.style.display = "none";
+    scanVideo.pause();
+
+    await loadAttendance();
+  } catch (err) {
+    addResult.textContent = 'Error adding student';
+    console.error(err);
+    scanPopup.style.display = "none";
+    scanVideo.pause();
+  }
+
+  addBtn.disabled = false;
+};
+
+  downloadBtn.onclick = () => {
+    window.location.href = '/download';
+  };
+
+  async function loadAttendance(){
+    try{
+      const resp = await fetch('/display_csv');
+      const data = await resp.json();
+      if(!data || data.length === 0){
+        attendanceTable.innerHTML = '<div class="small">No attendance yet</div>';
+        return;
+      }
+      let html = '<table><thead><tr><th>Name</th><th>Status</th><th>Timestamp</th></tr></thead><tbody>';
+      data.reverse();
+      for(const r of data){
+        const cls = (r.Status && r.Status.toLowerCase().startsWith('present')) ? 'present' : 'unknown';
+        html += `<tr><td>${escapeHtml(r.Name)}</td><td><span class="status ${cls}">${escapeHtml(r.Status)}</span></td><td>${escapeHtml(r.Timestamp)}</td></tr>`;
+      }
+      html += '</tbody></table>';
+      attendanceTable.innerHTML = html;
+    }catch(e){
+      attendanceTable.innerHTML = '<div class="small">Could not load attendance</div>';
+    }
+  }
+
+  function escapeHtml(s){
+    if(!s) return '';
+    return s.replace(/[&"'<>]/g, m => ({'&':'&amp;','"':'&quot;','\'':'&#39;','<':'&lt;','>':'&gt;'}[m]));
+  }
+
+  loadAttendance();
+  setInterval(loadAttendance, 5000);
+
+  // auto show default image on load
+  window.addEventListener('load', ()=> {
+    showDefault();
+  });
 </script>
-
 </body>
 </html>
